@@ -1,9 +1,14 @@
-import requests
-import json
+from database.db import retrieve
 
-# API GET to get the database
-response = requests.get("https://datasets-server.huggingface.co/rows?dataset=AMSRNA%2FMusicSem&config=default&split=train&offset=0&length=1")
-data = response.json()
-filtered_data = data.
-readable = json.dumps(data, indent=4)
-print(readable)
+
+def run_rag(query: str, n_results: int = 5, dataset_length: int = 100):
+    return retrieve(
+        query=query,
+        n_results=n_results,
+        dataset_length=dataset_length,
+    )
+
+
+if __name__ == "__main__":
+    results = run_rag("Heavy metal yet calming", n_results=3)
+    print(results)
