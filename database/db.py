@@ -2,14 +2,15 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 import chromadb
+import requests
 from chromadb.api.models.Collection import Collection
 from chromadb.utils import embedding_functions
 
 try:
-    from .api import fetch_documents
+    from .api import fetch_all_documents, fetch_documents
     from .document import Document
 except ImportError:
-    from api import fetch_documents
+    from api import fetch_all_documents, fetch_documents
     from document import Document
 
 
@@ -57,14 +58,30 @@ def build_database(
     collection_name: str = DEFAULT_COLLECTION_NAME,
     persist_directory: Optional[Path] = None,
     dataset_offset: int = 0,
-    dataset_length: int = 100,
+    dataset_length: Optional[int] = None,
+    batch_size: int = 100,
 ) -> Collection:
     collection = get_collection(
         collection_name=collection_name,
         persist_directory=persist_directory,
     )
-    documents = fetch_documents(offset=dataset_offset, length=dataset_length)
-    upsert_documents(collection, documents)
+
+    try:
+        if dataset_length is None:
+            documents = fetch_all_documents(
+                start_offset=dataset_offset,
+                batch_size=batch_size,
+            )
+        else:
+            documents = fetch_documents(offset=dataset_offset, length=dataset_length)
+        upsert_documents(collection, documents)
+    except requests.RequestException as exc:
+        if collection.count() == 0:
+            raise RuntimeError(
+                "Could not fetch the MusicSem dataset from Hugging Face, and no local "
+                "Chroma cache is available yet."
+            ) from exc
+
     return collection
 
 
@@ -89,7 +106,7 @@ def query_database(
 def retrieve(
     query: str,
     n_results: int = 5,
-    dataset_length: int = 100,
+    dataset_length: Optional[int] = None,
     collection_name: str = DEFAULT_COLLECTION_NAME,
     persist_directory: Optional[Path] = None,
 ):
