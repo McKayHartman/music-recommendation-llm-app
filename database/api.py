@@ -1,4 +1,5 @@
-from typing import List
+import time
+from typing import List, Optional
 
 import requests
 
@@ -28,12 +29,31 @@ def _format_description(row: dict) -> str:
     )
 
 
-def fetch_documents(offset: int = 0, length: int = 100, timeout: int = 30) -> List[Document]:
-    response = requests.get(
-        f"{DATASET_URL}&offset={offset}&length={length}",
-        timeout=timeout,
-    )
-    response.raise_for_status()
+def fetch_documents(
+    offset: int = 0,
+    length: int = 100,
+    timeout: int = 30,
+    retries: int = 3,
+    retry_delay: float = 1.5,
+) -> List[Document]:
+    last_error = None
+
+    for attempt in range(retries):
+        try:
+            response = requests.get(
+                f"{DATASET_URL}&offset={offset}&length={length}",
+                timeout=timeout,
+            )
+            response.raise_for_status()
+            break
+        except requests.RequestException as exc:
+            last_error = exc
+            if attempt == retries - 1:
+                raise
+            time.sleep(retry_delay * (attempt + 1))
+
+    if last_error and "response" not in locals():
+        raise last_error
 
     data = response.json()
     rows = data.get("rows", [])
@@ -61,7 +81,46 @@ def fetch_documents(offset: int = 0, length: int = 100, timeout: int = 30) -> Li
     return documents
 
 
+def fetch_all_documents(
+    start_offset: int = 0,
+    batch_size: int = 100,
+    timeout: int = 30,
+    retries: int = 3,
+    retry_delay: float = 1.5,
+    max_documents: Optional[int] = None,
+) -> List[Document]:
+    all_documents: List[Document] = []
+    offset = start_offset
+
+    while True:
+        current_batch_size = batch_size
+        if max_documents is not None:
+            remaining = max_documents - len(all_documents)
+            if remaining <= 0:
+                break
+            current_batch_size = min(batch_size, remaining)
+
+        batch = fetch_documents(
+            offset=offset,
+            length=current_batch_size,
+            timeout=timeout,
+            retries=retries,
+            retry_delay=retry_delay,
+        )
+
+        if not batch:
+            break
+
+        all_documents.extend(batch)
+        offset += len(batch)
+
+        if len(batch) < current_batch_size:
+            break
+
+    return all_documents
+
+
 try:
-    document_list = fetch_documents()
+    document_list = fetch_all_documents()
 except requests.RequestException:
     document_list = []
