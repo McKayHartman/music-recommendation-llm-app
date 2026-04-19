@@ -12,7 +12,7 @@ from system_prompt import SYSTEM_PROMPT_TEMPLATE
 
 
 def resolve_model_name() -> str:
-    model_name = os.environ.get("MODEL_NAME", "litellm_proxy/js2/gpt-oss-120b").strip()
+    model_name = getattr(env, 'MODEL_NAME', "litellm_proxy/js2/gpt-oss-120b").strip()
     if model_name.startswith("litellm_proxy/"):
         return model_name
     return f"litellm_proxy/{model_name}"
@@ -75,7 +75,7 @@ def build_messages(
             n_results=RAG_RESULTS,
             dataset_length=DATASET_LENGTH,
         )
-        user_query = f"Retrieved context:\n{rag_context}\n\nUser request:\n{user_query}"
+        user_query = "Retrieved context:\n{rag_context}\n\nUser request:\n{user_query}"
 
     messages.append(HumanMessage(content=user_query))
     return messages
@@ -85,9 +85,9 @@ def create_app() -> Flask:
     app = Flask(__name__)
     CORS(app)
 
-    api_key = os.environ.get("AIVERDE_API_KEY")
+    api_key = getattr(env, 'AIVERDE_API_KEY', None)
     if not api_key:
-        raise RuntimeError("AIVERDE_API_KEY is not set.")
+        raise RuntimeError("AIVERDE_API_KEY is not set in env.py.")
 
     llm = ChatLiteLLM(
         model=MODEL_NAME,

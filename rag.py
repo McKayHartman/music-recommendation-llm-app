@@ -58,18 +58,22 @@ def format_recommendations_for_prompt(
     sections = []
     for index, item in enumerate(recommendations, start=1):
         metadata = item.get("metadata", {})
-        sections.append(
-            "\n".join(
-                [
-                    f"Match {index}",
-                    f"Artist: {metadata.get('artist', 'Unknown')}",
-                    f"Song: {metadata.get('song', 'Unknown')}",
-                    f"Why it may fit: {metadata.get('contextual', '')}",
-                    f"Mood: {metadata.get('atmospheric', '')}",
-                    f"Extra tags: {metadata.get('metadata', '')}",
-                ]
-            )
+        section_lines = [
+            f"Match {index}",
+            f"Artist: {metadata.get('artist', 'Unknown')}",
+            f"Song: {metadata.get('song', 'Unknown')}",
+        ]
+        spotify_link = metadata.get("spotify_link")
+        if spotify_link:
+            section_lines.append(f"Spotify Link: {spotify_link}")
+        section_lines.extend(
+            [
+                f"Why it may fit: {metadata.get('contextual', '')}",
+                f"Mood: {metadata.get('atmospheric', '')}",
+                f"Extra tags: {metadata.get('metadata', '')}",
+            ]
         )
+        sections.append("\n".join(section_lines))
 
     return "\n\n".join(sections)
 

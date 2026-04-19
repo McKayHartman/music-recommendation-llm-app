@@ -21,6 +21,7 @@ def _format_description(row: dict) -> str:
             f"Descriptive: {row.get('descriptive', '')}",
             f"Artist: {row.get('artist', '')}",
             f"Song: {row.get('song', '')}",
+            f"Spotify Link: {row.get('spotify_link', '')}",
             f"Contextual: {row.get('contextual', '')}",
             f"Atmospheric: {row.get('atmospheric', '')}",
             f"Metadata: {row.get('metadata', '')}",
@@ -65,6 +66,7 @@ def fetch_documents(
         metadata = {
             "artist": row.get("artist", ""),
             "song": row.get("song", ""),
+            "spotify_link": row.get("spotify_link", ""),
             "contextual": row.get("contextual", ""),
             "atmospheric": row.get("atmospheric", ""),
             "metadata": row.get("metadata", ""),
@@ -120,7 +122,5 @@ def fetch_all_documents(
     return all_documents
 
 
-try:
-    document_list = fetch_all_documents()
-except requests.RequestException:
-    document_list = []
+# Removed eager loading to avoid rate limits on import
+# document_list = fetch_all_documents()
